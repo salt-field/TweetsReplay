@@ -5,6 +5,11 @@ import { Clock } from './parts/Clock';
 import dayjs from 'dayjs';
 import { ListItem, ListItemText } from '@material-ui/core';
 
+
+const AcquisitionSecondsAgo = 60;
+const AcquisitionPeriodMinutes = 2;
+
+
 export class Home extends Component {
     static displayName = Home.name;
 
@@ -28,6 +33,9 @@ export class Home extends Component {
         clearInterval(this.intervalId);
     }
 
+    /**
+     * 検索ボタン押下時イベント
+     * */
     async handleSearchButton() {
         const keyword = this.state.keyword;
         const startDateTime = this.state.startDateTime;
@@ -38,7 +46,8 @@ export class Home extends Component {
             return;
         }
 
-        this.tweets = await this.getTweets(this.state.keyword, startDateTime, 1);
+        this.tweets = await this.getTweets(keyword, startDateTime, AcquisitionPeriodMinutes);
+
         const displayTweets = this.tweets.filter((value) => value.createdAt.isSame(startDateTime, 'second'));
 
         this.setState(
@@ -49,9 +58,13 @@ export class Home extends Component {
             }
         );
 
-        this.intervalId = setInterval(() => {
+        //1秒ごとのインターバルをセットする
+        this.intervalId = setInterval(async () => {
+            //時刻を1秒足す
             const newDisplayDateTime = this.state.displayDateTime.add(1, 's');
-            const nowTweets = this.tweets.filter((value) => value.createdAt.isSame(newDisplayDateTime, 'second'));
+            //現時刻(秒)のツイートを格納
+            const nowTweets = this.tweets.filter((value) => !(value instanceof Promise) && value.createdAt.isSame(newDisplayDateTime, 'second'));
+            //現時刻のツイートを追加
             const newDisplayTweets = nowTweets.concat(this.state.displayTweets);
             this.setState(
                 {
@@ -59,6 +72,12 @@ export class Home extends Component {
                     displayTweets: newDisplayTweets
                 }
             );
+
+            //次回取得時刻の指定秒前になったらツイートを取得する
+            if (this.nextAcquisitionDateTime.diff(newDisplayDateTime,'seconds')===AcquisitionSecondsAgo) {
+                const newTweets = await this.getTweets(keyword, this.nextAcquisitionDateTime, AcquisitionPeriodMinutes);
+                this.tweets = this.tweets.concat(newTweets);
+            }
         }, 1000);
     }
 
@@ -101,6 +120,12 @@ export class Home extends Component {
         );
     }
 
+    /**
+     * ツイートを取得する
+     * @param {any} keyword
+     * @param {any} sinceDateTime
+     * @param {any} minutes
+     */
     async getTweets(keyword, sinceDateTime, minutes) {
         const strSinceDateTime = sinceDateTime.toISOString();
         const strUntilDateTime = sinceDateTime.add(minutes, 'minutes').toISOString();
@@ -108,12 +133,14 @@ export class Home extends Component {
         const url = `api/tweetsReplay?keyword=${encodedKeyword}&sinceDateTime=${strSinceDateTime}&untilDateTime=${strUntilDateTime}`;
         const response = await fetch(url);
         const data = await response.json();
+        //ツイート時間をdayjsオブジェクトに変換する
         const tweets = data.map((value) => ({
             tweetId: value.tweetId,
             text: value.text,
             createdAt: dayjs(value.createdAt)
         }));
-        console.log(tweets);
+        //次回取得時刻をセットする
+        this.nextAcquisitionDateTime = sinceDateTime.add(AcquisitionPeriodMinutes, 'minutes');
         return tweets;
     }
 }
