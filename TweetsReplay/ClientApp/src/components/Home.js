@@ -24,7 +24,6 @@ export class Home extends Component {
             displayTweets: [],
             keyword: '',
             startDateTime: oneHourAgo,
-            endDateTime: now,
             isPlay: false
         };
     }
@@ -34,15 +33,14 @@ export class Home extends Component {
     }
 
     /**
-     * 検索ボタン押下時イベント
+     * 再生ボタン押下時イベント
      * */
-    async handleSearchButton() {
+    async handlePlayButton() {
         const keyword = this.state.keyword;
         const startDateTime = this.state.startDateTime;
-        const endDateTime = this.state.endDateTime;
 
         //入力漏れがある場合
-        if (!(keyword && startDateTime && endDateTime)) {
+        if (!(keyword && startDateTime)) {
             return;
         }
 
@@ -69,16 +67,37 @@ export class Home extends Component {
             this.setState(
                 {
                     displayDateTime: newDisplayDateTime,
-                    displayTweets: newDisplayTweets
+                    displayTweets: newDisplayTweets,
+                    isPlay: true
                 }
             );
 
             //次回取得時刻の指定秒前になったらツイートを取得する
-            if (this.nextAcquisitionDateTime.diff(newDisplayDateTime,'seconds')===AcquisitionSecondsAgo) {
+            if (this.nextAcquisitionDateTime.diff(newDisplayDateTime, 'seconds') === AcquisitionSecondsAgo) {
                 const newTweets = await this.getTweets(keyword, this.nextAcquisitionDateTime, AcquisitionPeriodMinutes);
                 this.tweets = this.tweets.concat(newTweets);
             }
         }, 1000);
+    }
+
+    /**
+     * タイマー停止時イベント
+     * */
+    handleStopButton() {
+        //インターバルを削除する
+        clearInterval(this.intervalId);
+
+        this.tweets = [];
+
+        //フォームの開始時刻の初期値として最後の表示時刻を格納する
+        const startDateTime = this.state.displayDateTime;
+
+        this.setState({
+            displayDateTime: null,
+            displayTweets: [],
+            startDateTime: startDateTime,
+            isPlay: false
+        });
     }
 
     render() {
@@ -94,14 +113,13 @@ export class Home extends Component {
         return (
             <div>
                 <Form
-                    handleSearchButton={(keyword, startDateTime, endDateTime) => this.handleSearchButton(keyword, startDateTime, endDateTime)}
-                    handlePlayButton={() => this.setState({ isPlay: true })}
+                    handlePlayButton={() => this.handlePlayButton()}
+                    handleStopButton={() => this.handleStopButton()}
                     keyword={this.state.keyword}
                     setKeyword={(keyword) => this.setState({ keyword })}
                     startDateTime={this.state.startDateTime}
                     setStartDateTime={(startDateTime) => this.setState({ startDateTime })}
-                    endDateTime={this.state.endDateTime}
-                    setEndDateTime={(endDateTime) => this.setState({ endDateTime })}
+                    isPlay={this.state.isPlay}
                 />
                 {clock}
                 {this.state.displayTweets.length > 0 &&

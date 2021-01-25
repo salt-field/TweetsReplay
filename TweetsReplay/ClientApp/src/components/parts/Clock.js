@@ -1,12 +1,20 @@
-﻿import React, { Fragment } from 'react';
-import { Typography } from "@material-ui/core";
+﻿import React from 'react';
+import { Typography, makeStyles } from "@material-ui/core";
+
+const useStyles = makeStyles((theme) => ({
+    root: {
+        display: 'inline-block',
+        fontSize: 30
+    },
+}));
 
 export function Clock(props) {
+
+    const classes = useStyles();
+
     return (
-        <Fragment>
-            <Typography>
-                {props.displayDateTime.format('YYYY-MM-DD HH:mm:ss')}
-            </Typography>
-        </Fragment>
+        <Typography className={classes.root}>
+            {props.displayDateTime.format('YYYY-MM-DD HH:mm:ss')}
+        </Typography>
     );
 }

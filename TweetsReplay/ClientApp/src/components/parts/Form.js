@@ -1,18 +1,32 @@
 ﻿import React from 'react';
-import { TextField, makeStyles, Button } from '@material-ui/core';
 import dayjs from 'dayjs';
+import { TextField, makeStyles, Button, IconButton } from '@material-ui/core';
+import { PlayArrow, Stop } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
     root: {
+        display: 'inline-block',
         '& .MuiTextField-root': {
             marginRight: theme.spacing(1),
             width: '25ch',
         },
     },
+    button: {
+        marginRight: theme.spacing(1)
+    }
 }));
 
 export function Form(props) {
     const classes = useStyles();
+
+    //再生時は停止ボタンを、停止時は再生ボタンを表示する
+    const button = props.isPlay ?
+        <IconButton className={classes.button} onClick={() => props.handleStopButton()}>
+            <Stop />
+        </IconButton> :
+        <IconButton className={classes.button} onClick={() => props.handlePlayButton()}>
+            <PlayArrow />
+        </IconButton>;
 
     return (
         <form className={classes.root}>
@@ -33,29 +47,7 @@ export function Form(props) {
                 value={props.startDateTime.format('YYYY-MM-DDTHH:mm')}
                 onChange={(e) => props.setStartDateTime(dayjs(e.target.value))}
             />
-            <TextField
-                label='終了時刻'
-                type='datetime-local'
-                InputLabelProps={{
-                    shrink: true,
-                }}
-                value={props.endDateTime.format('YYYY-MM-DDTHH:mm')}
-                onChange={(e) => props.setEndDateTime(dayjs(e.target.value))}
-            />
-            <Button
-                onClick={() => props.handleSearchButton()}
-                variant="contained"
-                color="primary"
-            >
-                検索
-            </Button>
-            <Button
-                onClick={() => props.handlePlayButton()}
-                variant="contained"
-                color="primary"
-            >
-                再生
-            </Button>
+            {button}
         </form>
     );
 }
